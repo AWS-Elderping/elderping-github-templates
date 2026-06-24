@@ -10,7 +10,6 @@ on:
         required: true
         type: string
     secrets:
-        required: true
       SONAR_TOKEN:
         required: true
       SNYK_TOKEN:
@@ -33,9 +32,9 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '18'
-- name: Install Dependencies
+
+      - name: Install Dependencies
         run: npm ci
-        env:
 
       - name: Lint
         run: npm run lint --if-present
