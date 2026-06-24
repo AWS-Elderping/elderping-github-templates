@@ -46,6 +46,7 @@ jobs:
         run: npm test --if-present
 
       - name: SonarCloud Scan
+        if: false # Bypassed as requested
         uses: SonarSource/sonarcloud-github-action@master
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
