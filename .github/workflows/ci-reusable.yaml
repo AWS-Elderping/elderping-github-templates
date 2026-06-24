@@ -94,12 +94,54 @@ jobs:
         run: |
           docker push $REGISTRY/$REPOSITORY:$IMAGE_TAG
 
-      - name: Trigger CD Pipeline
+      - name: Checkout GitOps Repo
         if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/feature/test'
-        uses: peter-evans/repository-dispatch@v3
+        uses: actions/checkout@v4
         with:
-          token: ${{ secrets.GITOPS_PAT }}
           repository: AWS-Elderping/elderping-gitops
-          event-type: deploy-service
-          client-payload: '{"service": "${{ inputs.service_name }}", "tag": "${{ github.sha }}"}'
+          token: ${{ secrets.GITOPS_PAT }}
+          ref: ${{ github.ref_name }}
+          path: gitops-repo
+
+      - name: Setup yq
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/feature/test'
+        uses: mikefarah/yq@v4.44.2
+
+      - name: Update Helm Values in GitOps
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/feature/test'
+        run: |
+          if [ "${{ github.ref_name }}" = "main" ]; then
+            ENV="prod"
+          elif [ "${{ github.ref_name }}" = "develop" ]; then
+            ENV="dev"
+          elif [ "${{ github.ref_name }}" = "feature/test" ]; then
+            ENV="stage"
+          else
+            echo "Unsupported branch: ${{ github.ref_name }}"
+            exit 1
+          fi
+          
+          VALUES_FILE="gitops-repo/environments/${ENV}/${{ inputs.service_name }}-values.yaml"
+          echo "Updating values file: $VALUES_FILE with tag ${{ github.sha }}"
+          
+          if [ -f "$VALUES_FILE" ]; then
+            yq e -i ".image.tag = \"${{ github.sha }}\"" "$VALUES_FILE"
+          else
+            echo "Values file not found: $VALUES_FILE"
+            exit 1
+          fi
+
+      - name: Commit and Push to GitOps
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/feature/test'
+        run: |
+          cd gitops-repo
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add environments/
+          if git diff --staged --quiet; then
+            echo "No changes to deploy (image tag is already up to date)."
+          else
+            git commit -m "deploy: update ${{ inputs.service_name }} image tag to ${{ github.sha }} [skip ci]"
+            git push origin HEAD
+          fi
 
