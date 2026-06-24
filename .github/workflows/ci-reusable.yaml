@@ -14,16 +14,17 @@ on:
         required: true
       SNYK_TOKEN:
         required: true
-      AWS_ACCESS_KEY_ID:
+      AWS_ROLE_ARN:
         required: true
-      AWS_SECRET_ACCESS_KEY:
-        required: true
-      GITOPS_ACCESS_TOKEN:
+      GITOPS_PAT:
         required: true
 
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -56,8 +57,7 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: us-east-1
 
       - name: Login to Amazon ECR
@@ -93,7 +93,7 @@ jobs:
         if: github.ref == 'refs/heads/main'
         uses: peter-evans/repository-dispatch@v3
         with:
-          token: ${{ secrets.GITOPS_ACCESS_TOKEN }}
+          token: ${{ secrets.GITOPS_PAT }}
           repository: AWS-Elderping/elderping-gitops
           event-type: deploy-service
           client-payload: '{"service": "${{ inputs.service_name }}", "tag": "${{ github.sha }}"}'
