@@ -13,7 +13,7 @@ on:
       SONAR_TOKEN:
         required: true
       SNYK_TOKEN:
-        required: true
+        required: false
       AWS_ROLE_ARN:
         required: true
       GITOPS_PAT:
@@ -50,6 +50,7 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
       - name: Snyk Security Scan
+        if: ${{ secrets.SNYK_TOKEN != '' }}
         uses: snyk/actions/node@master
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
