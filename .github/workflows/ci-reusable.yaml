@@ -86,7 +86,7 @@ jobs:
           severity: 'CRITICAL,HIGH'
 
       - name: Push Docker Image
-        if: github.ref == 'refs/heads/main'
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/feature/test'
         env:
           REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           REPOSITORY: ${{ inputs.ecr_repository }}
@@ -95,7 +95,7 @@ jobs:
           docker push $REGISTRY/$REPOSITORY:$IMAGE_TAG
 
       - name: Trigger CD Pipeline
-        if: github.ref == 'refs/heads/main'
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/feature/test'
         uses: peter-evans/repository-dispatch@v3
         with:
           token: ${{ secrets.GITOPS_PAT }}
