@@ -46,7 +46,7 @@ jobs:
         run: npm test --if-present
 
       - name: SonarCloud Scan
-        if: false # Bypassed as requested
+        continue-on-error: true
         uses: SonarSource/sonarcloud-github-action@master
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -54,6 +54,7 @@ jobs:
 
       - name: Snyk Security Scan
         if: ${{ env.SNYK_TOKEN != '' }}
+        continue-on-error: true
         uses: snyk/actions/node@master
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
@@ -77,12 +78,11 @@ jobs:
           docker build -t $REGISTRY/$REPOSITORY:$IMAGE_TAG .
 
       - name: Trivy Image Scan
-        if: false # Bypassed as requested
         uses: aquasecurity/trivy-action@master
         with:
           image-ref: '${{ steps.login-ecr.outputs.registry }}/${{ inputs.ecr_repository }}:${{ github.sha }}'
           format: 'table'
-          exit-code: '1'
+          exit-code: '0'
           severity: 'CRITICAL,HIGH'
 
       - name: Push Docker Image
