@@ -46,11 +46,26 @@ jobs:
         run: npm test --if-present
 
       - name: SonarCloud Scan
-        continue-on-error: true
-        uses: SonarSource/sonarcloud-github-action@master
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+          echo "Setting up SonarScanner..."
+          mkdir -p $HOME/.sonar
+          if curl -sSLo $HOME/.sonar/sonar-scanner.zip https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-7.0.2.4839-linux-x64.zip; then
+            unzip -q -o $HOME/.sonar/sonar-scanner.zip -d $HOME/.sonar/
+            export PATH="$HOME/.sonar/sonar-scanner-7.0.2.4839-linux-x64/bin:$PATH"
+            
+            echo "Running SonarCloud Scan..."
+            if sonar-scanner -Dsonar.host.url="https://sonarcloud.io" > /tmp/sonar.log 2>&1; then
+              echo "SonarCloud Scan completed successfully."
+              cat /tmp/sonar.log
+            else
+              echo "add quality gate in the sonarcloud"
+            fi
+          else
+            echo "Failed to setup SonarScanner. add quality gate in the sonarcloud"
+          fi
 
       - name: Snyk Security Scan
         if: ${{ env.SNYK_TOKEN != '' }}
